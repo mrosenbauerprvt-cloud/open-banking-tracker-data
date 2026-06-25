@@ -20,6 +20,7 @@
       <nav class="main-nav">
         <a href="#" data-route="market" class="nav-link">Marktplatz</a>
         <a href="#" data-route="dashboard" class="nav-link">Meine Agenten</a>
+        <a href="#" data-route="activity" class="nav-link">Aktivität</a>
         <a href="#" data-route="how" class="nav-link">So funktioniert's</a>
       </nav>
 
@@ -61,7 +62,17 @@
       <h2 id="account-title">Willkommen bei x-sale 👋</h2>
       <p class="modal-text">Gib Deinen Namen ein – dann begrüßt Dich x-sale persönlich und Du sammelst XP.</p>
       <input id="account-name" type="text" placeholder="Dein Name…" />
-      <button class="btn btn-primary btn-block" id="account-save">Los geht's</button>
+      <button class="btn btn-primary btn-block" id="account-save">Los geht's (lokal)</button>
+
+      <div class="account-divider"><span>oder echtes Konto (Server)</span></div>
+      <input id="account-email" type="email" placeholder="E-Mail…" />
+      <input id="account-password" type="password" placeholder="Passwort…" />
+      <div class="account-row">
+        <button class="btn btn-ghost" id="account-register">Registrieren</button>
+        <button class="btn btn-primary" id="account-login">Anmelden</button>
+      </div>
+      <p class="modal-text" id="account-server-note" style="margin-top:10px"></p>
+
       <div id="account-stats"></div>
     </div>
   </div>

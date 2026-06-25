@@ -42,6 +42,22 @@ Danach im Browser öffnen: http://localhost:3000
 Läuft kein Server (oder kein Schlüssel), fällt der Chat automatisch auf die
 einfachen Demo-Antworten zurück – die App funktioniert also immer.
 
+### Was der Server zusätzlich kann
+
+- **Konten & Login** (`/api/register`, `/api/login`): echtes Konto mit E-Mail +
+  Passwort (sicher gehasht). Daten liegen dann auf dem Server, nicht nur im Browser.
+- **Agenten-Werkzeuge (Tool-Use):** der Agent kann im Chat handeln – z. B. den
+  x-sale-Status abrufen oder eine **Automatisierung anlegen** („mach das jeden Tag").
+- **Zeitplaner:** angelegte Automatisierungen werden **automatisch ausgeführt** und
+  unter **„Aktivität"** in der App protokolliert.
+- **Bezahlung (Stripe):** trägst Du `STRIPE_SECRET_KEY` in `.env` ein, läuft der
+  „Mieten"-Button über eine echte Stripe-Bezahlseite. Ohne Schlüssel: Demo-Modus.
+
+### Was noch simuliert ist (ehrlich)
+- Der **x-sale-Status** im Werkzeug liefert Demo-Zahlen (echte Anbindung kommt später).
+- Der **Zeitplaner** läuft nur, solange der Server läuft (für echten Dauerbetrieb
+  später z. B. ein Cron-Job).
+
 ## 🧩 Was kann die App schon?
 
 - **Marktplatz** mit KI-Agenten – **spielerisch (gamified)** mit Level-Abzeichen
@@ -68,7 +84,17 @@ einfachen Demo-Antworten zurück – die App funktioniert also immer.
 | `styles.css`  | Das Aussehen (Farben, Abstände, Layout)                     |
 | `data.js`     | Die **Liste der Agenten** – hier neue Agenten eintragen     |
 | `app.js`      | Die Logik (Seiten wechseln, Warenkorb, Chat, Speichern)     |
-| `server/`     | Kleiner Node.js-Server für **echte KI im Chat** (optional)  |
+| `server/`     | Node.js-Server: KI-Chat, Login, Werkzeuge, Zeitplaner, Bezahlung |
+
+### Dateien im `server/`-Ordner
+
+| Datei            | Was steht drin?                                          |
+|------------------|----------------------------------------------------------|
+| `server.js`      | Verbindet alles (Routen, Chat, Bezahlung, Start)         |
+| `db.js`          | Einfache Datenbank (JSON-Datei)                          |
+| `auth.js`        | Konten & Login (Passwörter sicher gehasht)               |
+| `tools.js`       | Werkzeuge, die der Agent benutzen darf                   |
+| `automations.js` | Zeitplaner für wiederkehrende Aufgaben                   |
 
 ## ✏️ Einen neuen Agenten hinzufügen
 
@@ -76,14 +102,21 @@ einfachen Demo-Antworten zurück – die App funktioniert also immer.
 Ändere `id`, `name`, `tagline`, `emoji`, `description`, `skills` und `levels` (Level 1–3).
 Speichern, Seite neu laden – fertig.
 
-## 🔜 Nächste mögliche Schritte (wenn Du willst)
+## ✅ Schon umgesetzt (mit Server)
 
-Dies ist bewusst ein einfacher Start. Später ausbaubar zu:
-- echtem Login / Konten für Kunden
-- echter Bezahlung (z. B. Stripe)
-- einer Datenbank statt Browser-Speicher
-- einem Anbieter-Bereich, in dem Dritte eigene Agenten einstellen
-- der tatsächlichen Anbindung lauffähiger KI-Agenten
+- echte KI im Chat (Modell je Level)
+- Login / Konten für Kunden
+- Datenbank (Datei-basiert) statt nur Browser-Speicher
+- Agenten-Werkzeuge (Tool-Use): Status abrufen, Automatisierungen anlegen
+- Zeitplaner, der Automatisierungen automatisch ausführt
+- Bezahlung über Stripe (optional, mit Schlüssel)
 
-> Hinweis: Dies ist ein Prototyp zur Veranschaulichung des Konzepts.
-> Bezahlung und Agenten-Ausführung sind noch simuliert.
+## 🔜 Nächste mögliche Schritte
+
+- echte x-sale-Anbindung (statt Demo-Zahlen im Werkzeug)
+- Dauerbetrieb des Zeitplaners (Cron-Job / Queue)
+- echte Datenbank (SQLite/Postgres) statt JSON-Datei
+- Anbieter-Bereich, in dem Dritte eigene Agenten einstellen
+
+> Hinweis: Ohne laufenden Server bleibt die App ein lokaler Prototyp
+> (Browser-Speicher, Demo-Antworten). Mit Server werden die Funktionen oben echt.

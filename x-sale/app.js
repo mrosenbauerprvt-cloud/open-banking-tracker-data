@@ -21,9 +21,11 @@ const state = {
   rentals: [],          // gemietete Agenten
   chats: {},            // Chatverlauf je Agent: { agentId: [ {from, text} ] }
   automations: {},      // Automatisierungen je Agent: { agentId: [ "täglich ..." ] }
-  user: null,           // { name }  – einfaches Konto
+  user: null,           // { name }  – einfaches lokales Konto
   xp: 0,                // Erfahrungspunkte (Gamification)
   tokenUsed: {},        // verbrauchte Tokens je Agent: { agentId: number }
+  serverToken: null,    // Login-Token vom Server (echtes Konto)
+  serverUser: null,     // { id, email, name } vom Server
 };
 
 const STORAGE_KEY = "xsale_state_v3";
@@ -43,6 +45,7 @@ function save() {
     cart: state.cart, rentals: state.rentals,
     chats: state.chats, automations: state.automations,
     user: state.user, xp: state.xp, tokenUsed: state.tokenUsed,
+    serverToken: state.serverToken, serverUser: state.serverUser,
   }));
 }
 function load() {
@@ -56,8 +59,20 @@ function load() {
       state.user = s.user || null;
       state.xp = s.xp || 0;
       state.tokenUsed = s.tokenUsed || {};
+      state.serverToken = s.serverToken || null;
+      state.serverUser = s.serverUser || null;
     }
   } catch (e) {}
+}
+
+// Hilfsfunktion für API-Aufrufe (sendet das Login-Token mit, falls vorhanden)
+async function api(pathName, options = {}) {
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (state.serverToken) headers.Authorization = "Bearer " + state.serverToken;
+  const res = await fetch(pathName, { ...options, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Server-Fehler");
+  return data;
 }
 
 /* ---------- Gamification: XP & Konto ---------- */
@@ -73,10 +88,16 @@ function addXp(amount, reason) {
   renderAccount();
 }
 
+function displayName() {
+  if (state.serverUser) return state.serverUser.name;
+  if (state.user) return state.user.name;
+  return null;
+}
 function renderAccount() {
   const label = $("#account-label");
   if (!label) return;
-  label.textContent = state.user ? `👤 ${state.user.name} · ⭐ Lvl ${userLevel()}` : "👤 Anmelden";
+  const name = displayName();
+  label.textContent = name ? `👤 ${name} · ⭐ Lvl ${userLevel()}` : "👤 Anmelden";
 }
 
 function openAccount() {
@@ -92,11 +113,50 @@ function openAccount() {
       <div class="stat-track"><div class="stat-fill" style="width:${(xpInLevel()/XP_PER_LEVEL)*100}%"></div></div>
       <p class="modal-text" style="margin-top:10px">Du sammelst XP durchs Mieten, Chatten und Automatisieren.</p>
     </div>` : "";
+  const note = $("#account-server-note");
+  if (note) {
+    note.innerHTML = state.serverUser
+      ? `✅ Angemeldet als <strong>${state.serverUser.email}</strong> · <a href="#" id="account-logout">Abmelden</a>`
+      : "Mit einem echten Konto werden Deine Daten auf dem Server gespeichert (nicht nur im Browser).";
+    const lo = $("#account-logout");
+    if (lo) lo.onclick = (e) => { e.preventDefault(); serverLogout(); };
+  }
   modal.hidden = false;
   $("#overlay").hidden = false;
   input.focus();
 }
 function closeAccount() { $("#account-modal").hidden = true; $("#overlay").hidden = true; }
+
+async function serverAuth(kind) {
+  const email = $("#account-email").value.trim();
+  const password = $("#account-password").value;
+  const name = $("#account-name").value.trim();
+  if (!email || !password) { toast("Bitte E-Mail und Passwort eingeben."); return; }
+  try {
+    const data = await api("/api/" + kind, {
+      method: "POST",
+      body: JSON.stringify({ email, password, name }),
+    });
+    state.serverToken = data.token;
+    state.serverUser = data.user;
+    if (!state.user) state.user = { name: data.user.name };
+    save();
+    renderAccount();
+    closeAccount();
+    toast(`Willkommen, ${data.user.name}! 🎉`);
+    render();
+  } catch (e) {
+    toast("⚠️ " + e.message);
+  }
+}
+function serverLogout() {
+  state.serverToken = null;
+  state.serverUser = null;
+  save();
+  renderAccount();
+  closeAccount();
+  toast("Abgemeldet.");
+}
 function saveAccount() {
   const name = $("#account-name").value.trim();
   if (!name) { toast("Bitte gib einen Namen ein."); return; }
@@ -188,12 +248,28 @@ function renderCart() {
 function openCart() { $("#cart-drawer").classList.add("open"); $("#overlay").hidden = false; }
 function closeCart() { $("#cart-drawer").classList.remove("open"); $("#overlay").hidden = true; }
 
-function checkout() {
+async function checkout() {
   if (state.cart.length === 0) { toast("Dein Warenkorb ist leer."); return; }
+
+  // Versuche echte Bezahlung über den Server (Stripe). Klappt das nicht
+  // (kein Server / kein Stripe-Schlüssel), wird lokal "gemietet" (Mock).
+  try {
+    const items = state.cart.map((it) => {
+      const a = getAgent(it.agentId);
+      return { name: a.name, level: it.level, price: it.price };
+    });
+    const data = await api("/api/checkout", { method: "POST", body: JSON.stringify({ items }) });
+    if (data.url) { window.location.href = data.url; return; } // echte Stripe-Bezahlseite
+  } catch (e) { /* offline / kein Server -> Mock unten */ }
+
   const today = new Date().toLocaleDateString("de-DE");
   const count = state.cart.length;
   state.cart.forEach((item) => {
     state.rentals.push({ ...item, since: today });
+    // Wenn eingeloggt: Miete auch auf dem Server speichern
+    if (state.serverToken) {
+      api("/api/rentals", { method: "POST", body: JSON.stringify(item) }).catch(() => {});
+    }
   });
   state.cart = [];
   save();
@@ -394,17 +470,14 @@ function pushChat(agentId, from, text) {
 // kein API-Schlüssel / file://), wird auf die Demo-Antwort zurückgefallen.
 async function getReply(agent, level, history, userText) {
   try {
-    const res = await fetch("/api/chat", {
+    const data = await api("/api/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        agent: { name: agent.name, skills: agent.skills, tagline: agent.tagline },
+        agent: { id: agent.id, name: agent.name, skills: agent.skills, tagline: agent.tagline },
         level,
         history: history.map((m) => ({ from: m.from, text: m.text })),
       }),
     });
-    if (!res.ok) throw new Error("Server-Fehler");
-    const data = await res.json();
     if (data.reply) return data.reply;
     throw new Error("Leere Antwort");
   } catch (e) {
@@ -609,6 +682,56 @@ function viewDashboard() {
     });
 }
 
+// ---- Aktivität (Automatisierungen & Ausführungen vom Server) ----
+async function viewActivity() {
+  app.innerHTML = `<div class="section-head"><h1>Aktivität</h1></div>
+    <div class="empty-state">Lade Daten vom Server…</div>`;
+  let autos = [], runs = [];
+  let online = true;
+  try {
+    autos = (await api("/api/automations")).automations || [];
+    runs = (await api("/api/runs")).runs || [];
+  } catch (e) { online = false; }
+
+  if (!online) {
+    app.innerHTML = `<div class="section-head"><h1>Aktivität</h1></div>
+      <div class="empty-state">
+        Diese Seite zeigt, was Deine Agenten automatisch erledigt haben.<br/>
+        Dafür muss der <strong>Server laufen</strong> (siehe README → „echte KI").<br/>
+        Lege im Chat eine Automatisierung an (z. B. „mach das jeden Tag") –
+        der Zeitplaner führt sie dann aus und protokolliert sie hier.
+      </div>`;
+    return;
+  }
+
+  const autoHtml = autos.length
+    ? autos.map((a) => `<div class="rental-row">
+        <div class="avatar glow">🔁</div>
+        <div class="info"><strong>${a.description}</strong>
+          <div>Agent: ${a.agentName} · alle ${a.intervalMin} Min.</div></div>
+        <div class="badge">${a.active ? "aktiv" : "pausiert"}</div>
+      </div>`).join("")
+    : `<div class="empty-state">Noch keine Automatisierungen. Lege im Chat eine an.</div>`;
+
+  const runHtml = runs.length
+    ? runs.map((r) => `<div class="run-item">
+        <div class="run-time">${new Date(r.at).toLocaleString("de-DE")} · ${r.agentName}</div>
+        <div class="run-task">🔁 ${r.description}</div>
+        <div class="run-output">${(r.output || "").replace(/</g, "&lt;")}</div>
+      </div>`).join("")
+    : `<div class="empty-state">Noch keine Ausführungen protokolliert.</div>`;
+
+  app.innerHTML = `
+    <div class="section-head"><h1>Aktivität</h1>
+      <button class="btn btn-ghost btn-sm" id="refresh-activity">Aktualisieren</button></div>
+    <h2>Aktive Automatisierungen</h2>
+    ${autoHtml}
+    <h2 style="margin-top:24px">Letzte Ausführungen</h2>
+    <div class="runs">${runHtml}</div>
+  `;
+  $("#refresh-activity").onclick = () => viewActivity();
+}
+
 // ---- "So funktioniert's" ----
 function viewHow() {
   app.innerHTML = `
@@ -636,6 +759,7 @@ function render() {
   else if (state.route === "detail") viewDetail();
   else if (state.route === "chat") viewChat();
   else if (state.route === "dashboard") viewDashboard();
+  else if (state.route === "activity") viewActivity();
   else if (state.route === "how") viewHow();
   if (state.route !== "chat") window.scrollTo({ top: 0 });
 }
@@ -657,6 +781,8 @@ function init() {
   $("#account-close").onclick = closeAccount;
   $("#account-save").onclick = saveAccount;
   $("#account-name").onkeydown = (e) => { if (e.key === "Enter") saveAccount(); };
+  $("#account-register").onclick = () => serverAuth("register");
+  $("#account-login").onclick = () => serverAuth("login");
   render();
 }
 document.addEventListener("DOMContentLoaded", init);
