@@ -21,6 +21,27 @@ python3 -m http.server 8000
 
 Dann im Browser öffnen: http://localhost:8000
 
+### Weg 3: Mit echter KI im Chat (Server)
+Damit der Chat **wirklich** mit Claude antwortet (gestaffelt nach Level), gibt es im
+Ordner `server/` einen kleinen Node.js-Server. Du brauchst dafür einen API-Schlüssel
+von https://console.anthropic.com/ (kostet je Nutzung Geld).
+
+```bash
+cd x-sale/server
+npm install
+cp .env.example .env        # dann in .env den ANTHROPIC_API_KEY eintragen
+npm start
+```
+
+Danach im Browser öffnen: http://localhost:3000
+
+- **Level 1 → Haiku** (schnell & günstig)
+- **Level 2 → Sonnet** (ausgewogen)
+- **Level 3 → Opus** (stärkstes Modell)
+
+Läuft kein Server (oder kein Schlüssel), fällt der Chat automatisch auf die
+einfachen Demo-Antworten zurück – die App funktioniert also immer.
+
 ## 🧩 Was kann die App schon?
 
 - **Marktplatz** mit KI-Agenten – **spielerisch (gamified)** mit Level-Abzeichen
@@ -46,12 +67,13 @@ Dann im Browser öffnen: http://localhost:8000
 | `index.html`  | Das Grundgerüst der Seite (Kopfzeile, Bereiche, Warenkorb)  |
 | `styles.css`  | Das Aussehen (Farben, Abstände, Layout)                     |
 | `data.js`     | Die **Liste der Agenten** – hier neue Agenten eintragen     |
-| `app.js`      | Die Logik (Seiten wechseln, Warenkorb, Speichern)           |
+| `app.js`      | Die Logik (Seiten wechseln, Warenkorb, Chat, Speichern)     |
+| `server/`     | Kleiner Node.js-Server für **echte KI im Chat** (optional)  |
 
 ## ✏️ Einen neuen Agenten hinzufügen
 
 Öffne `data.js` und kopiere einen vorhandenen Eintrag in der Liste `AGENTS`.
-Ändere `id`, `name`, `tagline`, `emoji`, `description`, `skills` und `plans`.
+Ändere `id`, `name`, `tagline`, `emoji`, `description`, `skills` und `levels` (Level 1–3).
 Speichern, Seite neu laden – fertig.
 
 ## 🔜 Nächste mögliche Schritte (wenn Du willst)

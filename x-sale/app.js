@@ -390,7 +390,30 @@ function pushChat(agentId, from, text) {
   save();
 }
 
-// einfache "Antwort-Logik" der Demo (echte KI kommt in einem späteren Schritt)
+// Holt eine Antwort vom Server (echte KI). Klappt das nicht (kein Server /
+// kein API-Schlüssel / file://), wird auf die Demo-Antwort zurückgefallen.
+async function getReply(agent, level, history, userText) {
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agent: { name: agent.name, skills: agent.skills, tagline: agent.tagline },
+        level,
+        history: history.map((m) => ({ from: m.from, text: m.text })),
+      }),
+    });
+    if (!res.ok) throw new Error("Server-Fehler");
+    const data = await res.json();
+    if (data.reply) return data.reply;
+    throw new Error("Leere Antwort");
+  } catch (e) {
+    // Rückfall: Demo-Antwort (ohne echte KI)
+    return botReply(agent, userText);
+  }
+}
+
+// einfache "Antwort-Logik" der Demo (Rückfall, wenn kein Server läuft)
 function botReply(agent, userText) {
   const t = userText.toLowerCase();
   if (/(jeden tag|täglich|immer|wiederhol|automatisch|jede woche|montags)/.test(t)) {
@@ -427,14 +450,20 @@ function viewChat() {
       <div class="stat-track"><div class="stat-fill" style="width:${budget ? (remaining/budget)*100 : 0}%"></div></div>
     </div>` : `<p class="plan-includes">🔓 Demo-Modus – miete ${a.name}, um echtes Token-Guthaben zu erhalten.</p>`;
 
-  const messages = history.length
+  const typingHtml = state.typing ? `
+    <div class="msg bot">
+      <div class="msg-ava">${a.emoji}</div>
+      <div class="bubble typing"><span></span><span></span><span></span></div>
+    </div>` : "";
+
+  const messages = (history.length
     ? history.map((m) => `
         <div class="msg ${m.from}">
           ${m.from === "bot" ? `<div class="msg-ava">${a.emoji}</div>` : ""}
           <div class="bubble">${m.text}</div>
         </div>`).join("")
     : `<div class="chat-hint">👋 Schreib ${a.name} eine Nachricht – z. B.
-         „Fasse mir jeden Tag meine neuen Anfragen zusammen".</div>`;
+         „Fasse mir jeden Tag meine neuen Anfragen zusammen".</div>`) + typingHtml;
 
   const autoList = autos.length
     ? autos.map((x, i) => `<li>🔁 ${x} <button class="icon-btn" data-del-auto="${i}">✕</button></li>`).join("")
@@ -476,18 +505,25 @@ function viewChat() {
   app.querySelector("[data-back]").onclick = () => openDetail(a.id);
 
   const input = $("#chat-text");
-  const send = () => {
+  const chatLevel = rental ? rental.level : 1;
+  const send = async () => {
     const text = input.value.trim();
-    if (!text) return;
+    if (!text || state.typing) return;
     if (rental && remaining < TOKENS_PER_MESSAGE) {
       toast("🪙 Token-Guthaben aufgebraucht – upgrade das Level für mehr.");
       return;
     }
     pushChat(a.id, "user", text);
-    pushChat(a.id, "bot", botReply(a, text));
     if (rental) { state.tokenUsed[a.id] = used + TOKENS_PER_MESSAGE; save(); }
     input.value = "";
     addXp(XP.chat, "Chat");
+    state.typing = true;
+    viewChat();
+    const w0 = $("#chat-window"); if (w0) w0.scrollTop = w0.scrollHeight;
+
+    const reply = await getReply(a, chatLevel, state.chats[a.id] || [], text);
+    pushChat(a.id, "bot", reply);
+    state.typing = false;
     viewChat();
     const w = $("#chat-window"); if (w) w.scrollTop = w.scrollHeight;
   };
