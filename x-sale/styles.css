@@ -1,0 +1,223 @@
+/* ============================================================
+   x-sale – Styling (das Aussehen der App)
+   Aufgeteilt in: Grundlagen, Kopfzeile, Buttons, Karten,
+   Detailseite, Warenkorb, Dashboard, Footer, Mobil.
+   ============================================================ */
+
+/* ---- Farben & Grundwerte (zentral änderbar) ---- */
+:root {
+  --bg: #0f1116;
+  --surface: #181b22;
+  --surface-2: #20242e;
+  --border: #2a2f3a;
+  --text: #e8eaed;
+  --text-dim: #9aa0ac;
+  --primary: #6c5ce7;
+  --primary-2: #8b7bff;
+  --accent: #00d1b2;
+  --danger: #ff6b6b;
+  --radius: 14px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --maxw: 1120px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 80% -10%, #1c2030 0%, var(--bg) 55%);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.55;
+  min-height: 100vh;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.container { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
+
+/* ---- Kopfzeile ---- */
+.site-header {
+  position: sticky; top: 0; z-index: 30;
+  backdrop-filter: blur(10px);
+  background: rgba(15, 17, 22, 0.8);
+  border-bottom: 1px solid var(--border);
+}
+.header-inner { display: flex; align-items: center; gap: 24px; height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; }
+.brand-mark {
+  display: grid; place-items: center;
+  width: 34px; height: 34px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff; font-weight: 900;
+}
+.brand-name { letter-spacing: -0.02em; }
+.main-nav { display: flex; gap: 6px; margin-left: 12px; }
+.nav-link {
+  padding: 8px 14px; border-radius: 10px; color: var(--text-dim);
+  font-weight: 600; font-size: 15px;
+}
+.nav-link:hover { color: var(--text); background: var(--surface); }
+.nav-link.active { color: #fff; background: var(--surface-2); }
+.cart-button {
+  margin-left: auto; position: relative;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 9px 14px; border-radius: 12px;
+  cursor: pointer; font-size: 16px;
+}
+.cart-button:hover { border-color: var(--primary); }
+.cart-count {
+  position: absolute; top: -8px; right: -8px;
+  background: var(--primary); color: #fff;
+  min-width: 20px; height: 20px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; display: grid; place-items: center; padding: 0 5px;
+}
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); padding: 11px 18px; border-radius: 12px;
+  font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.15s;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-2)); border-color: transparent; color: #fff; }
+.btn-ghost { background: transparent; }
+.btn-block { width: 100%; }
+.btn-sm { padding: 8px 12px; font-size: 14px; }
+
+/* ---- Hero (Startbereich) ---- */
+.hero { padding: 56px 0 28px; }
+.hero h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.05; margin: 0 0 14px; letter-spacing: -0.03em; }
+.hero h1 .grad { background: linear-gradient(135deg, var(--primary-2), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero p { color: var(--text-dim); font-size: 18px; max-width: 620px; margin: 0 0 22px; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* ---- Such- & Filterleiste ---- */
+.toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 28px 0 18px; }
+.search-box { flex: 1; min-width: 240px; position: relative; }
+.search-box input {
+  width: 100%; background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 12px 14px 12px 40px; border-radius: 12px; font-size: 15px;
+}
+.search-box::before { content: "🔍"; position: absolute; left: 13px; top: 50%; transform: translateY(-50%); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  background: var(--surface); border: 1px solid var(--border); color: var(--text-dim);
+  padding: 8px 14px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 14px;
+}
+.chip:hover { color: var(--text); }
+.chip.active { background: var(--primary); border-color: transparent; color: #fff; }
+
+/* ---- Agenten-Raster ---- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; margin: 8px 0 48px; }
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column;
+  transition: 0.18s; cursor: pointer;
+}
+.card:hover { transform: translateY(-3px); border-color: var(--primary); box-shadow: var(--shadow); }
+.card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.avatar {
+  width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center;
+  font-size: 26px; background: var(--surface-2); border: 1px solid var(--border);
+}
+.card h3 { margin: 0; font-size: 18px; }
+.rating { color: var(--accent); font-size: 13px; font-weight: 700; }
+.card-tagline { color: var(--text-dim); font-size: 14px; margin: 0 0 14px; flex: 1; }
+.card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.price-from { font-size: 13px; color: var(--text-dim); }
+.price-from strong { color: var(--text); font-size: 18px; }
+.tag {
+  display: inline-block; font-size: 12px; color: var(--text-dim);
+  background: var(--surface-2); border: 1px solid var(--border);
+  padding: 3px 9px; border-radius: 999px;
+}
+
+/* ---- Detailseite ---- */
+.detail { padding: 28px 0 56px; }
+.back-link { color: var(--text-dim); font-weight: 600; display: inline-block; margin-bottom: 18px; }
+.back-link:hover { color: var(--text); }
+.detail-head { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.detail-head .avatar { width: 76px; height: 76px; font-size: 40px; }
+.detail-head h1 { margin: 0 0 4px; font-size: 30px; }
+.detail-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 28px; margin-top: 28px; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+.panel h2 { margin: 0 0 12px; font-size: 18px; }
+.skill-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.plan {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; cursor: pointer;
+}
+.plan:hover, .plan.selected { border-color: var(--primary); background: var(--surface-2); }
+.plan-name { font-weight: 700; }
+.plan-includes { font-size: 13px; color: var(--text-dim); }
+.plan-price { font-size: 20px; font-weight: 800; white-space: nowrap; }
+.plan-price small { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+
+/* ---- Warenkorb-Schublade ---- */
+.cart-drawer {
+  position: fixed; top: 0; right: 0; height: 100%; width: 380px; max-width: 90vw;
+  background: var(--surface); border-left: 1px solid var(--border);
+  transform: translateX(100%); transition: 0.25s; z-index: 50;
+  display: flex; flex-direction: column;
+}
+.cart-drawer.open { transform: translateX(0); }
+.cart-drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 20px; border-bottom: 1px solid var(--border); }
+.cart-drawer-head h2 { margin: 0; font-size: 18px; }
+.icon-btn { background: none; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; }
+.icon-btn:hover { color: var(--text); }
+.cart-items { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.cart-item { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.cart-item .avatar { width: 42px; height: 42px; font-size: 20px; }
+.cart-item-info { flex: 1; }
+.cart-item-info strong { display: block; font-size: 15px; }
+.cart-item-info span { font-size: 13px; color: var(--text-dim); }
+.cart-empty { color: var(--text-dim); text-align: center; padding: 40px 0; }
+.cart-foot { padding: 18px 20px; border-top: 1px solid var(--border); }
+.cart-total { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 16px; }
+.cart-total strong { font-size: 22px; }
+.overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 40; }
+
+/* ---- Dashboard "Meine Agenten" ---- */
+.section-head { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 16px; }
+.section-head h1 { margin: 0; font-size: 28px; }
+.rental-row {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; margin-bottom: 12px;
+}
+.rental-row .avatar { width: 48px; height: 48px; font-size: 24px; }
+.rental-row .info { flex: 1; }
+.rental-row .info strong { font-size: 16px; }
+.rental-row .info div { font-size: 13px; color: var(--text-dim); }
+.badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(0,209,178,0.15); color: var(--accent); }
+
+/* ---- "So funktioniert's" ---- */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin: 24px 0 48px; }
+.step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+.step .num { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; background: var(--surface-2); margin-bottom: 12px; color: var(--primary-2); }
+.step h3 { margin: 0 0 6px; }
+.step p { margin: 0; color: var(--text-dim); font-size: 15px; }
+
+/* ---- Hinweis / leerer Zustand ---- */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+
+/* ---- Toast (kurze Meldung) ---- */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+  padding: 12px 20px; border-radius: 12px; box-shadow: var(--shadow);
+  opacity: 0; transition: 0.25s; z-index: 60; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---- Footer ---- */
+.site-footer { border-top: 1px solid var(--border); padding: 24px 0; color: var(--text-dim); margin-top: 40px; }
+.site-footer p { margin: 0; font-size: 14px; }
+
+/* ---- Mobil ---- */
+@media (max-width: 760px) {
+  .main-nav { display: none; }
+  .detail-grid { grid-template-columns: 1fr; }
+}

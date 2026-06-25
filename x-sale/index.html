@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>x-sale · KI-Agenten mieten</title>
+  <meta name="description" content="x-sale – der Marktplatz, auf dem Du fertige KI-Agenten flexibel mietest." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Kopfzeile / Navigation -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#" data-route="market">
+        <span class="brand-mark">x</span>
+        <span class="brand-name">x-sale</span>
+      </a>
+
+      <nav class="main-nav">
+        <a href="#" data-route="market" class="nav-link">Marktplatz</a>
+        <a href="#" data-route="dashboard" class="nav-link">Meine Agenten</a>
+        <a href="#" data-route="how" class="nav-link">So funktioniert's</a>
+      </nav>
+
+      <button class="cart-button" id="cart-button" aria-label="Warenkorb öffnen">
+        🛒 <span class="cart-count" id="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hier wird die jeweilige Seite eingefügt -->
+  <main id="app" class="container"></main>
+
+  <!-- Warenkorb-Schublade -->
+  <aside class="cart-drawer" id="cart-drawer" aria-hidden="true">
+    <div class="cart-drawer-head">
+      <h2>Dein Warenkorb</h2>
+      <button class="icon-btn" id="cart-close" aria-label="Schließen">✕</button>
+    </div>
+    <div class="cart-items" id="cart-items"></div>
+    <div class="cart-foot">
+      <div class="cart-total">
+        <span>Summe / Monat</span>
+        <strong id="cart-total">0 €</strong>
+      </div>
+      <button class="btn btn-primary btn-block" id="checkout-btn">Jetzt mieten</button>
+    </div>
+  </aside>
+  <div class="overlay" id="overlay" hidden></div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© <span id="year"></span> x-sale · Prototyp · KI-Agenten flexibel mieten</p>
+    </div>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
