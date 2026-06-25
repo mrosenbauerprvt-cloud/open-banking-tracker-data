@@ -23,9 +23,14 @@
         <a href="#" data-route="how" class="nav-link">So funktioniert's</a>
       </nav>
 
-      <button class="cart-button" id="cart-button" aria-label="Warenkorb öffnen">
-        🛒 <span class="cart-count" id="cart-count">0</span>
-      </button>
+      <div class="header-right">
+        <button class="account-button" id="account-button" aria-label="Konto">
+          <span id="account-label">👤 Anmelden</span>
+        </button>
+        <button class="cart-button" id="cart-button" aria-label="Warenkorb öffnen">
+          🛒 <span class="cart-count" id="cart-count">0</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -48,6 +53,18 @@
     </div>
   </aside>
   <div class="overlay" id="overlay" hidden></div>
+
+  <!-- Konto-Fenster (einfaches Anmelden ohne Passwort) -->
+  <div class="modal" id="account-modal" hidden>
+    <div class="modal-card">
+      <button class="icon-btn modal-close" id="account-close" aria-label="Schließen">✕</button>
+      <h2 id="account-title">Willkommen bei x-sale 👋</h2>
+      <p class="modal-text">Gib Deinen Namen ein – dann begrüßt Dich x-sale persönlich und Du sammelst XP.</p>
+      <input id="account-name" type="text" placeholder="Dein Name…" />
+      <button class="btn btn-primary btn-block" id="account-save">Los geht's</button>
+      <div id="account-stats"></div>
+    </div>
+  </div>
 
   <footer class="site-footer">
     <div class="container">

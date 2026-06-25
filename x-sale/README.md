@@ -32,6 +32,11 @@ Dann im Browser öffnen: http://localhost:8000
 - **Automatisierungen**: sag „mach das jeden Tag" → wird als wiederkehrende Aufgabe gespeichert
 - **„Mieten"-Flow**: Level wählen → Warenkorb → Mock-Checkout
 - **„Meine Agenten"**: zeigt gemietete Agenten + Automatisierungen, merkt sich alles im Browser
+- **Konto & XP-Gamification**: Name eingeben, persönliche Begrüßung, XP & Nutzer-Level
+  fürs Mieten, Chatten und Automatisieren
+- **Token-Guthaben pro Agent**: jedes Level hat ein Token-Budget, das im Chat verbraucht
+  und auf dem Dashboard angezeigt wird
+- **Level-Vergleich**: alle drei Level (Preis, Tempo, Genauigkeit, Power, Tokens) in einer Tabelle
 - Reagiert auf Handy & Desktop (responsives Design)
 
 ## 📁 Aus welchen Dateien besteht die App?

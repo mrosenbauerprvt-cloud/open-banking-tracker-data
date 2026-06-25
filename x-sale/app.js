@@ -21,9 +21,18 @@ const state = {
   rentals: [],          // gemietete Agenten
   chats: {},            // Chatverlauf je Agent: { agentId: [ {from, text} ] }
   automations: {},      // Automatisierungen je Agent: { agentId: [ "täglich ..." ] }
+  user: null,           // { name }  – einfaches Konto
+  xp: 0,                // Erfahrungspunkte (Gamification)
+  tokenUsed: {},        // verbrauchte Tokens je Agent: { agentId: number }
 };
 
-const STORAGE_KEY = "xsale_state_v2";
+const STORAGE_KEY = "xsale_state_v3";
+
+// Gamification-Einstellungen
+const XP_PER_LEVEL = 500;                 // XP, die ein Nutzer-Level kostet
+const XP = { rent: 100, chat: 10, auto: 50, signup: 50 };
+const TOKENS_PER_MESSAGE = 250;           // Demo: so viele Tokens "kostet" eine Nachricht
+const tokenBudget = (agent, level) => getLevel(agent, level).stats.tokens * 1000;
 
 /* ---------- 2) Hilfsfunktionen ---------- */
 const $ = (sel) => document.querySelector(sel);
@@ -33,6 +42,7 @@ function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     cart: state.cart, rentals: state.rentals,
     chats: state.chats, automations: state.automations,
+    user: state.user, xp: state.xp, tokenUsed: state.tokenUsed,
   }));
 }
 function load() {
@@ -43,8 +53,60 @@ function load() {
       state.rentals = s.rentals || [];
       state.chats = s.chats || {};
       state.automations = s.automations || {};
+      state.user = s.user || null;
+      state.xp = s.xp || 0;
+      state.tokenUsed = s.tokenUsed || {};
     }
   } catch (e) {}
+}
+
+/* ---------- Gamification: XP & Konto ---------- */
+const userLevel = () => Math.floor(state.xp / XP_PER_LEVEL) + 1;
+const xpInLevel = () => state.xp % XP_PER_LEVEL;
+
+function addXp(amount, reason) {
+  const before = userLevel();
+  state.xp += amount;
+  save();
+  if (userLevel() > before) toast(`🏆 Level ${userLevel()} erreicht! Stark!`);
+  else if (amount > 0) toast(`+${amount} XP ${reason ? "· " + reason : ""}`);
+  renderAccount();
+}
+
+function renderAccount() {
+  const label = $("#account-label");
+  if (!label) return;
+  label.textContent = state.user ? `👤 ${state.user.name} · ⭐ Lvl ${userLevel()}` : "👤 Anmelden";
+}
+
+function openAccount() {
+  const modal = $("#account-modal");
+  const input = $("#account-name");
+  const stats = $("#account-stats");
+  $("#account-title").textContent = state.user
+    ? `Hallo, ${state.user.name}! 👋` : "Willkommen bei x-sale 👋";
+  input.value = state.user ? state.user.name : "";
+  stats.innerHTML = state.user ? `
+    <div class="xp-box">
+      <div class="xp-head"><span>⭐ Nutzer-Level ${userLevel()}</span><span>${xpInLevel()} / ${XP_PER_LEVEL} XP</span></div>
+      <div class="stat-track"><div class="stat-fill" style="width:${(xpInLevel()/XP_PER_LEVEL)*100}%"></div></div>
+      <p class="modal-text" style="margin-top:10px">Du sammelst XP durchs Mieten, Chatten und Automatisieren.</p>
+    </div>` : "";
+  modal.hidden = false;
+  $("#overlay").hidden = false;
+  input.focus();
+}
+function closeAccount() { $("#account-modal").hidden = true; $("#overlay").hidden = true; }
+function saveAccount() {
+  const name = $("#account-name").value.trim();
+  if (!name) { toast("Bitte gib einen Namen ein."); return; }
+  const isNew = !state.user;
+  state.user = { name };
+  save();
+  renderAccount();
+  if (isNew) addXp(XP.signup, "Willkommen!");
+  closeAccount();
+  toast(`Willkommen, ${name}! 🎉`);
 }
 const getAgent = (id) => AGENTS.find((a) => a.id === id);
 const euro = (n) => n.toLocaleString("de-DE") + " €";
@@ -129,6 +191,7 @@ function closeCart() { $("#cart-drawer").classList.remove("open"); $("#overlay")
 function checkout() {
   if (state.cart.length === 0) { toast("Dein Warenkorb ist leer."); return; }
   const today = new Date().toLocaleDateString("de-DE");
+  const count = state.cart.length;
   state.cart.forEach((item) => {
     state.rentals.push({ ...item, since: today });
   });
@@ -136,6 +199,7 @@ function checkout() {
   save();
   renderCart();
   closeCart();
+  addXp(XP.rent * count, "Agent gemietet");
   toast("🎉 Vermietung abgeschlossen! Viel Erfolg mit Deinen Agenten.");
   navigate("dashboard");
 }
@@ -248,6 +312,17 @@ function viewDetail() {
 
   const skillTags = a.skills.map((s) => `<span class="tag">${s}</span>`).join("");
 
+  // Vergleichstabelle aller drei Level
+  const compareRows = [
+    ["", a.levels.map((l) => `<th>${LEVEL_INFO[l.level].icon} Level ${l.level}<br/><small>${LEVEL_INFO[l.level].name}</small></th>`).join("")],
+    ["💶 Preis/Monat", a.levels.map((l) => `<td><strong>${euro(l.price)}</strong></td>`).join("")],
+    ["⚡ Geschwindigkeit", a.levels.map((l) => `<td>${l.stats.speed}</td>`).join("")],
+    ["🎯 Genauigkeit", a.levels.map((l) => `<td>${l.stats.accuracy}</td>`).join("")],
+    ["🧠 Rechenleistung", a.levels.map((l) => `<td>${l.stats.power}</td>`).join("")],
+    ["🪙 Tokens", a.levels.map((l) => `<td>${(l.stats.tokens*1000).toLocaleString("de-DE")}</td>`).join("")],
+    ["📦 Enthalten", a.levels.map((l) => `<td>${l.includes}</td>`).join("")],
+  ].map((r, i) => i === 0 ? `<tr><th></th>${r[1]}</tr>` : `<tr><th class="rowhead">${r[0]}</th>${r[1]}</tr>`).join("");
+
   app.innerHTML = `
     <section class="detail">
       <a class="back-link" data-route="market">← Zurück zum Marktplatz</a>
@@ -287,6 +362,13 @@ function viewDetail() {
 
           <button class="btn btn-primary btn-block" id="rent-btn">In den Warenkorb</button>
           <button class="btn btn-ghost btn-block" id="try-btn" style="margin-top:10px">💬 Agent ausprobieren</button>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:18px">
+        <h2>Level vergleichen</h2>
+        <div class="compare-wrap">
+          <table class="compare-table">${compareRows}</table>
         </div>
       </div>
     </section>
@@ -333,6 +415,17 @@ function viewChat() {
   if (!a) { navigate("market"); return; }
   const history = state.chats[a.id] || [];
   const autos = state.automations[a.id] || [];
+  const rental = state.rentals.find((r) => r.agentId === a.id);
+  const budget = rental ? tokenBudget(a, rental.level) : 0;
+  const used = state.tokenUsed[a.id] || 0;
+  const remaining = Math.max(0, budget - used);
+
+  const tokenBar = rental ? `
+    <div class="token-meter">
+      <div class="stat-head"><span>🪙 Token-Guthaben (${levelBadge(rental.level)})</span>
+        <span>${remaining.toLocaleString("de-DE")} / ${budget.toLocaleString("de-DE")}</span></div>
+      <div class="stat-track"><div class="stat-fill" style="width:${budget ? (remaining/budget)*100 : 0}%"></div></div>
+    </div>` : `<p class="plan-includes">🔓 Demo-Modus – miete ${a.name}, um echtes Token-Guthaben zu erhalten.</p>`;
 
   const messages = history.length
     ? history.map((m) => `
@@ -360,6 +453,7 @@ function viewChat() {
 
       <div class="detail-grid">
         <div class="panel chat-panel">
+          ${tokenBar}
           <div class="chat-window" id="chat-window">${messages}</div>
           <div class="chat-input">
             <input id="chat-text" type="text" placeholder="Nachricht an ${a.name}…" />
@@ -385,9 +479,15 @@ function viewChat() {
   const send = () => {
     const text = input.value.trim();
     if (!text) return;
+    if (rental && remaining < TOKENS_PER_MESSAGE) {
+      toast("🪙 Token-Guthaben aufgebraucht – upgrade das Level für mehr.");
+      return;
+    }
     pushChat(a.id, "user", text);
     pushChat(a.id, "bot", botReply(a, text));
+    if (rental) { state.tokenUsed[a.id] = used + TOKENS_PER_MESSAGE; save(); }
     input.value = "";
+    addXp(XP.chat, "Chat");
     viewChat();
     const w = $("#chat-window"); if (w) w.scrollTop = w.scrollHeight;
   };
@@ -401,6 +501,7 @@ function viewChat() {
     if (!state.automations[a.id]) state.automations[a.id] = [];
     state.automations[a.id].push(lastUser.text);
     save();
+    addXp(XP.auto, "Automatisierung");
     toast("Automatisierung gespeichert 🔁");
     viewChat();
   };
@@ -427,6 +528,10 @@ function viewDashboard() {
   const rows = state.rentals.map((r, i) => {
     const a = getAgent(r.agentId);
     const autos = (state.automations[a.id] || []).length;
+    const budget = tokenBudget(a, r.level);
+    const used = state.tokenUsed[a.id] || 0;
+    const remaining = Math.max(0, budget - used);
+    const pct = budget ? (remaining / budget) * 100 : 0;
     return `
       <div class="rental-row">
         <div class="avatar glow">${a.emoji}</div>
@@ -434,6 +539,10 @@ function viewDashboard() {
           <strong>${a.name}</strong>
           <div>${levelBadge(r.level)} ${r.custom ? "· 🎓 individuell" : ""} · seit ${r.since}</div>
           <div>🔁 ${autos} Automatisierung${autos === 1 ? "" : "en"}</div>
+          <div class="row-token">
+            <div class="stat-track"><div class="stat-fill" style="width:${pct}%"></div></div>
+            <small>🪙 ${remaining.toLocaleString("de-DE")} Tokens übrig</small>
+          </div>
         </div>
         <div class="badge">aktiv</div>
         <div style="font-weight:800; white-space:nowrap">${euro(r.price)}/Mon.</div>
@@ -442,10 +551,11 @@ function viewDashboard() {
       </div>`;
   }).join("");
 
+  const greeting = state.user ? `Hallo, ${state.user.name}! ` : "";
   app.innerHTML = `
     <div class="section-head">
-      <h1>Meine Agenten</h1>
-      <div class="price-from">Monatliche Kosten: <strong>${euro(monthly)}</strong></div>
+      <h1>${greeting}Meine Agenten</h1>
+      <div class="price-from">⭐ Level ${userLevel()} · Monatlich: <strong>${euro(monthly)}</strong></div>
     </div>
     ${rows}
   `;
@@ -499,13 +609,18 @@ function navigate(route) { state.route = route; render(); }
 function init() {
   load();
   renderCart();
+  renderAccount();
   $("#year").textContent = new Date().getFullYear();
   document.querySelectorAll(".nav-link, .brand").forEach((el) =>
     el.onclick = (e) => { e.preventDefault(); navigate(el.dataset.route); });
   $("#cart-button").onclick = openCart;
   $("#cart-close").onclick = closeCart;
-  $("#overlay").onclick = closeCart;
+  $("#overlay").onclick = () => { closeCart(); closeAccount(); };
   $("#checkout-btn").onclick = checkout;
+  $("#account-button").onclick = openAccount;
+  $("#account-close").onclick = closeAccount;
+  $("#account-save").onclick = saveAccount;
+  $("#account-name").onkeydown = (e) => { if (e.key === "Enter") saveAccount(); };
   render();
 }
 document.addEventListener("DOMContentLoaded", init);
