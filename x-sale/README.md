@@ -23,10 +23,15 @@ Dann im Browser öffnen: http://localhost:8000
 
 ## 🧩 Was kann die App schon?
 
-- **Marktplatz** mit KI-Agenten (Karten, Kategorien-Filter, Suche)
-- **Detailseite** je Agent mit Beschreibung, Fähigkeiten und Tarifen
-- **„Mieten"-Flow**: Tarif wählen → Warenkorb → Mock-Checkout
-- **„Meine Agenten"**: zeigt gemietete Agenten, merkt sie sich im Browser
+- **Marktplatz** mit KI-Agenten – **spielerisch (gamified)** mit Level-Abzeichen
+- **Level 1–3** je Agent: Geschwindigkeit, Genauigkeit, Rechenleistung und Tokens
+  werden als Balken angezeigt; der Preis hängt vom Level ab
+- **Vortrainiert ODER auf Wunsch trainiert** (mit Aufpreis) wählbar
+- **Detailseite** je Agent mit Beschreibung, Fähigkeiten und Level-Werten
+- **Chat-Demo** („Agent ausprobieren"): rede mit dem Agenten wie mit einem Kollegen
+- **Automatisierungen**: sag „mach das jeden Tag" → wird als wiederkehrende Aufgabe gespeichert
+- **„Mieten"-Flow**: Level wählen → Warenkorb → Mock-Checkout
+- **„Meine Agenten"**: zeigt gemietete Agenten + Automatisierungen, merkt sich alles im Browser
 - Reagiert auf Handy & Desktop (responsives Design)
 
 ## 📁 Aus welchen Dateien besteht die App?
