@@ -461,6 +461,11 @@ function viewDetail() {
           <table class="compare-table">${compareRows}</table>
         </div>
       </div>
+
+      <div class="panel" style="margin-top:18px">
+        <h2>Bewertungen</h2>
+        <div id="reviews">Lade Bewertungen…</div>
+      </div>
     </section>
   `;
 
@@ -471,6 +476,60 @@ function viewDetail() {
   if (cc) cc.onchange = () => { state.custom = cc.checked; viewDetail(); };
   $("#rent-btn").onclick = () => addToCart(a.id, state.selectedLevel, state.custom);
   $("#try-btn").onclick = () => navigate("chat");
+  loadReviews(a.id);
+}
+
+// Lädt und zeigt die Bewertungen eines Agenten (vom Server)
+async function loadReviews(agentId) {
+  const box = $("#reviews");
+  if (!box) return;
+  let data;
+  try {
+    data = await api("/api/reviews?agentId=" + encodeURIComponent(agentId));
+  } catch (e) {
+    box.innerHTML = `<p class="plan-includes">Bewertungen sind nur mit laufendem Server verfügbar.</p>`;
+    return;
+  }
+
+  const summary = data.count
+    ? `<div class="rating">${stars(data.average)} · ${data.count} Bewertung${data.count === 1 ? "" : "en"}</div>`
+    : `<p class="plan-includes">Noch keine Bewertungen. Sei der/die Erste!</p>`;
+
+  const list = (data.reviews || []).map((r) => `
+    <div class="review">
+      <div class="review-head"><strong>${r.userName}</strong>
+        <span>${"★".repeat(r.stars)}${"☆".repeat(5 - r.stars)}</span></div>
+      ${r.text ? `<div class="review-text">${r.text.replace(/</g, "&lt;")}</div>` : ""}
+    </div>`).join("");
+
+  const form = state.serverToken ? `
+    <div class="review-form">
+      <h3>Deine Bewertung</h3>
+      <select id="rev-stars">
+        <option value="5">★★★★★ (5)</option>
+        <option value="4">★★★★ (4)</option>
+        <option value="3">★★★ (3)</option>
+        <option value="2">★★ (2)</option>
+        <option value="1">★ (1)</option>
+      </select>
+      <textarea id="rev-text" rows="2" placeholder="Was hat Dir gefallen? (optional)"></textarea>
+      <button class="btn btn-primary" id="rev-submit">Bewertung abgeben</button>
+    </div>`
+    : `<p class="plan-includes">Melde Dich an (oben rechts), um zu bewerten.</p>`;
+
+  box.innerHTML = summary + (list ? `<div class="reviews-list">${list}</div>` : "") + form;
+
+  const submit = $("#rev-submit");
+  if (submit) submit.onclick = async () => {
+    try {
+      await api("/api/reviews", {
+        method: "POST",
+        body: JSON.stringify({ agentId, stars: $("#rev-stars").value, text: $("#rev-text").value }),
+      });
+      toast("Danke für Deine Bewertung! ⭐");
+      loadReviews(agentId);
+    } catch (e) { toast("⚠️ " + e.message); }
+  };
 }
 
 // ---- Chat-Demo + Automatisierungen ----

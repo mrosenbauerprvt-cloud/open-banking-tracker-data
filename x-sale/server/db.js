@@ -20,7 +20,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "data");
 const DB_FILE = path.join(DATA_DIR, "db.json");
 
-const EMPTY = { users: [], sessions: [], rentals: [], automations: [], runs: [], agents: [] };
+const EMPTY = { users: [], sessions: [], rentals: [], automations: [], runs: [], agents: [], reviews: [] };
 
 function ensure() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });

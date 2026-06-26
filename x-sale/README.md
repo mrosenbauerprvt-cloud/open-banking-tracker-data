@@ -114,13 +114,13 @@ Speichern, Seite neu laden – fertig.
 - Zeitplaner, der Automatisierungen automatisch ausführt
 - Bezahlung über Stripe (optional, mit Schlüssel)
 - Anbieter-Bereich: Dritte stellen eigene Agenten in den Marktplatz ein
+- Bewertungen/Reviews: Nutzer bewerten Agenten (Sterne + Kommentar)
 
 ## 🔜 Nächste mögliche Schritte
 
 - echte x-sale-Anbindung (statt Demo-Zahlen im Werkzeug)
 - Dauerbetrieb des Zeitplaners (Cron-Job / Queue)
 - echte Datenbank (SQLite/Postgres) statt JSON-Datei
-- Bewertungen/Reviews für Anbieter-Agenten
 
 > Hinweis: Ohne laufenden Server bleibt die App ein lokaler Prototyp
 > (Browser-Speicher, Demo-Antworten). Mit Server werden die Funktionen oben echt.

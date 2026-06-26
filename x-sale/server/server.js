@@ -151,6 +151,34 @@ app.delete("/api/agents/:id", (req, res) => {
   res.json({ ok: true });
 });
 
+/* ---------------- Bewertungen (Reviews) ---------------- */
+app.get("/api/reviews", (req, res) => {
+  const agentId = req.query.agentId;
+  const db = read();
+  const list = (db.reviews || []).filter((r) => r.agentId === agentId);
+  const count = list.length;
+  const average = count ? list.reduce((s, r) => s + r.stars, 0) / count : 0;
+  res.json({ reviews: list.slice().reverse(), count, average: Math.round(average * 10) / 10 });
+});
+
+app.post("/api/reviews", (req, res) => {
+  if (!req.user) return res.status(401).json({ error: "Bitte einloggen, um zu bewerten." });
+  const { agentId, stars, text } = req.body || {};
+  const n = Math.max(1, Math.min(5, Math.round(Number(stars) || 0)));
+  if (!agentId) return res.status(400).json({ error: "agentId fehlt." });
+  const review = {
+    id: id("rev"),
+    agentId,
+    userId: req.user.id,
+    userName: req.user.name,
+    stars: n,
+    text: String(text || "").trim().slice(0, 500),
+    at: new Date().toISOString(),
+  };
+  update("reviews", (list) => list.concat(review));
+  res.json({ review });
+});
+
 /* ---------------- Automatisierungen & Protokoll ---------------- */
 app.get("/api/automations", (req, res) => {
   const db = read();
