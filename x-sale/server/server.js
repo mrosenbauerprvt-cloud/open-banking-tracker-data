@@ -151,6 +151,40 @@ app.delete("/api/agents/:id", (req, res) => {
   res.json({ ok: true });
 });
 
+/* ---------------- Admin-Bereich ---------------- */
+function requireAdmin(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: "Bitte einloggen." });
+  if (req.user.role !== "admin") return res.status(403).json({ error: "Kein Admin-Zugang." });
+  next();
+}
+
+app.get("/api/admin/overview", requireAdmin, (_req, res) => {
+  const db = read();
+  res.json({
+    counts: {
+      users: db.users.length,
+      agents: (db.agents || []).length,
+      rentals: db.rentals.length,
+      reviews: (db.reviews || []).length,
+      automations: db.automations.length,
+      runs: db.runs.length,
+    },
+    users: db.users.map((u) => ({ id: u.id, email: u.email, name: u.name, role: u.role || "user", createdAt: u.createdAt })),
+    agents: (db.agents || []).map((a) => ({ id: a.id, name: a.name, providerName: a.providerName, category: a.category })),
+    reviews: (db.reviews || []).slice(-50).reverse(),
+  });
+});
+
+// Admin darf jeden Agenten / jede Bewertung löschen
+app.delete("/api/admin/agents/:id", requireAdmin, (req, res) => {
+  update("agents", (list) => list.filter((a) => a.id !== req.params.id));
+  res.json({ ok: true });
+});
+app.delete("/api/admin/reviews/:id", requireAdmin, (req, res) => {
+  update("reviews", (list) => list.filter((r) => r.id !== req.params.id));
+  res.json({ ok: true });
+});
+
 /* ---------------- Bewertungen (Reviews) ---------------- */
 app.get("/api/reviews", (req, res) => {
   const agentId = req.query.agentId;

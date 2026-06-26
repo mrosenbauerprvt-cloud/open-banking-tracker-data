@@ -115,6 +115,9 @@ Speichern, Seite neu laden – fertig.
 - Bezahlung über Stripe (optional, mit Schlüssel)
 - Anbieter-Bereich: Dritte stellen eigene Agenten in den Marktplatz ein
 - Bewertungen/Reviews: Nutzer bewerten Agenten (Sterne + Kommentar)
+- Admin-Bereich: Übersicht (Nutzer/Agenten/Mieten/...) mit Löschrechten;
+  Admin via `ADMIN_EMAIL` oder erster registrierter Nutzer (siehe `INTEGRATION.md`)
+- X-Sales-Plugin: `plugin.json` + `INTEGRATION.md` für den App-Store
 
 ## 🔜 Nächste mögliche Schritte
 

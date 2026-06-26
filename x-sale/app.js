@@ -99,6 +99,8 @@ function renderAccount() {
   if (!label) return;
   const name = displayName();
   label.textContent = name ? `👤 ${name} · ⭐ Lvl ${userLevel()}` : "👤 Anmelden";
+  const navAdmin = $("#nav-admin");
+  if (navAdmin) navAdmin.hidden = !(state.serverUser && state.serverUser.role === "admin");
 }
 
 function openAccount() {
@@ -881,6 +883,69 @@ function viewProvider() {
     });
 }
 
+// ---- Admin-Bereich (nur für Administratoren) ----
+async function viewAdmin() {
+  const isAdmin = state.serverUser && state.serverUser.role === "admin";
+  if (!isAdmin) {
+    app.innerHTML = `<div class="section-head"><h1>Admin</h1></div>
+      <div class="empty-state">Dieser Bereich ist nur für Administratoren.<br/>
+        Melde Dich mit Deinem Admin-Konto an (oben rechts).</div>`;
+    return;
+  }
+  app.innerHTML = `<div class="section-head"><h1>Admin</h1></div>
+    <div class="empty-state">Lade Daten…</div>`;
+  let data;
+  try { data = await api("/api/admin/overview"); }
+  catch (e) {
+    app.innerHTML = `<div class="section-head"><h1>Admin</h1></div>
+      <div class="empty-state">⚠️ ${e.message}</div>`;
+    return;
+  }
+
+  const c = data.counts;
+  const stat = (n, l) => `<div class="stat-card"><div class="stat-num">${n}</div><div class="stat-label">${l}</div></div>`;
+  const usersHtml = data.users.map((u) => `<div class="rental-row">
+      <div class="avatar glow">${u.role === "admin" ? "👑" : "👤"}</div>
+      <div class="info"><strong>${u.name}</strong><div>${u.email} · ${u.role}</div></div>
+    </div>`).join("");
+  const agentsHtml = data.agents.length
+    ? data.agents.map((a) => `<div class="rental-row">
+        <div class="avatar glow">🤖</div>
+        <div class="info"><strong>${a.name}</strong><div>${a.providerName || "—"} · ${categoryLabel(a.category)}</div></div>
+        <button class="btn btn-ghost btn-sm" data-del-agent="${a.id}">Löschen</button>
+      </div>`).join("")
+    : `<div class="empty-state">Keine Anbieter-Agenten.</div>`;
+  const reviewsHtml = data.reviews.length
+    ? data.reviews.map((r) => `<div class="rental-row">
+        <div class="avatar glow">⭐</div>
+        <div class="info"><strong>${"★".repeat(r.stars)} ${r.userName}</strong><div>${(r.text || "").replace(/</g, "&lt;")}</div></div>
+        <button class="btn btn-ghost btn-sm" data-del-review="${r.id}">Löschen</button>
+      </div>`).join("")
+    : `<div class="empty-state">Keine Bewertungen.</div>`;
+
+  app.innerHTML = `
+    <div class="section-head"><h1>👑 Admin</h1>
+      <button class="btn btn-ghost btn-sm" id="admin-refresh">Aktualisieren</button></div>
+    <div class="stat-cards">
+      ${stat(c.users, "Nutzer")}${stat(c.agents, "Anbieter-Agenten")}${stat(c.rentals, "Mieten")}
+      ${stat(c.reviews, "Bewertungen")}${stat(c.automations, "Automatisierungen")}${stat(c.runs, "Ausführungen")}
+    </div>
+    <h2 style="margin-top:24px">Nutzer</h2>${usersHtml}
+    <h2 style="margin-top:24px">Anbieter-Agenten</h2>${agentsHtml}
+    <h2 style="margin-top:24px">Letzte Bewertungen</h2>${reviewsHtml}
+  `;
+
+  $("#admin-refresh").onclick = () => viewAdmin();
+  app.querySelectorAll("[data-del-agent]").forEach((b) => b.onclick = async () => {
+    try { await api("/api/admin/agents/" + b.dataset.delAgent, { method: "DELETE" }); await loadCustomAgents(); toast("Agent gelöscht."); viewAdmin(); }
+    catch (e) { toast("⚠️ " + e.message); }
+  });
+  app.querySelectorAll("[data-del-review]").forEach((b) => b.onclick = async () => {
+    try { await api("/api/admin/reviews/" + b.dataset.delReview, { method: "DELETE" }); toast("Bewertung gelöscht."); viewAdmin(); }
+    catch (e) { toast("⚠️ " + e.message); }
+  });
+}
+
 // ---- "So funktioniert's" ----
 function viewHow() {
   app.innerHTML = `
@@ -910,6 +975,7 @@ function render() {
   else if (state.route === "dashboard") viewDashboard();
   else if (state.route === "activity") viewActivity();
   else if (state.route === "provider") viewProvider();
+  else if (state.route === "admin") viewAdmin();
   else if (state.route === "how") viewHow();
   if (state.route !== "chat") window.scrollTo({ top: 0 });
 }
@@ -933,6 +999,11 @@ function init() {
   $("#account-name").onkeydown = (e) => { if (e.key === "Enter") saveAccount(); };
   $("#account-register").onclick = () => serverAuth("register");
   $("#account-login").onclick = () => serverAuth("login");
+  // Deep-Link für die Einbettung im X-Sales-Store: ?route=admin / provider / ...
+  try {
+    const r = new URLSearchParams(location.search).get("route");
+    if (r && ["market", "dashboard", "activity", "provider", "admin", "how"].includes(r)) state.route = r;
+  } catch (e) {}
   render();
   // Von Anbietern eingestellte Agenten nachladen und Ansicht aktualisieren
   loadCustomAgents().then(() => render());

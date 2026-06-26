@@ -1,0 +1,31 @@
+{
+  "$schema": "https://x-sales.app/schemas/plugin.json",
+  "id": "agenten-vermietung",
+  "name": "KI-Agenten-Vermietung",
+  "version": "1.0.0",
+  "shortDescription": "Marktplatz, auf dem Kunden fertige KI-Agenten in Level 1–3 mieten.",
+  "description": "Voll funktionsfähiger Marktplatz für KI-Agenten: spielerische Darstellung mit Level 1–3 (Tokens, Tempo, Genauigkeit, Rechenleistung), echter KI-Chat, Automatisierungen mit Zeitplaner, Bezahlung (Stripe), Anbieter-Bereich und Bewertungen. Passt zum X-Sales-Mietbot-Modell.",
+  "author": "X-Sales (Max)",
+  "category": "vertrieb",
+  "icon": "🤖",
+  "entry": "index.html",
+  "api": "server/server.js",
+  "permissions": ["chat", "payments", "scheduler", "accounts"],
+  "embeddable": true,
+  "adminConfigurable": true,
+  "config": {
+    "ANTHROPIC_API_KEY": { "type": "secret", "required": true, "label": "Claude API-Schlüssel" },
+    "STRIPE_SECRET_KEY": { "type": "secret", "required": false, "label": "Stripe Secret Key (für echte Bezahlung)" },
+    "ADMIN_EMAIL": { "type": "string", "required": false, "label": "Admin-E-Mail" }
+  },
+  "pricingTiers": [
+    { "id": "basis", "name": "Basis", "level": 1, "model": "haiku", "priceFrom": 100 },
+    { "id": "pro", "name": "Pro", "level": 2, "model": "sonnet", "priceFrom": 300 },
+    { "id": "premium", "name": "Premium", "level": 3, "model": "opus", "priceFrom": 500 }
+  ],
+  "routes": {
+    "marketplace": "/",
+    "admin": "/?route=admin",
+    "provider": "/?route=provider"
+  }
+}

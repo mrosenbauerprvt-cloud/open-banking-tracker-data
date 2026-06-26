@@ -13,6 +13,16 @@ function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString("hex");
 }
 
+// Admin-Regel: Wer ist Administrator?
+//  - die E-Mail aus ADMIN_EMAIL (in .env), ODER
+//  - der allererste registrierte Nutzer (praktisch für den Start)
+function roleFor(email, isFirstUser) {
+  const adminEmail = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+  if (adminEmail && email === adminEmail) return "admin";
+  if (isFirstUser) return "admin";
+  return "user";
+}
+
 export function register(email, password, name) {
   email = String(email || "").trim().toLowerCase();
   if (!email || !password) throw new Error("E-Mail und Passwort sind erforderlich.");
@@ -26,6 +36,7 @@ export function register(email, password, name) {
     name: name || email.split("@")[0],
     salt,
     hash: hashPassword(password, salt),
+    role: roleFor(email, db.users.length === 0),
     createdAt: new Date().toISOString(),
   };
   db.users.push(user);
@@ -70,5 +81,7 @@ export function attachUser(req, _res, next) {
 }
 
 function publicUser(u) {
-  return { id: u.id, email: u.email, name: u.name };
+  // Admin bleibt Admin; zusätzlich greift ADMIN_EMAIL auch nachträglich
+  const role = u.role === "admin" ? "admin" : roleFor(u.email, false);
+  return { id: u.id, email: u.email, name: u.name, role };
 }
