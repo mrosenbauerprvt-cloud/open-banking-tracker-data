@@ -52,6 +52,9 @@ einfachen Demo-Antworten zurück – die App funktioniert also immer.
   unter **„Aktivität"** in der App protokolliert.
 - **Bezahlung (Stripe):** trägst Du `STRIPE_SECRET_KEY` in `.env` ein, läuft der
   „Mieten"-Button über eine echte Stripe-Bezahlseite. Ohne Schlüssel: Demo-Modus.
+- **Anbieter-Bereich:** eingeloggte Nutzer können unter **„Anbieter"** eigene
+  KI-Agenten einstellen (Name, Kategorie, Fähigkeiten, Preise je Level). Diese
+  erscheinen dann für alle im Marktplatz – x-sale wird so ein echter Marktplatz.
 
 ### Was noch simuliert ist (ehrlich)
 - Der **x-sale-Status** im Werkzeug liefert Demo-Zahlen (echte Anbindung kommt später).
@@ -110,13 +113,14 @@ Speichern, Seite neu laden – fertig.
 - Agenten-Werkzeuge (Tool-Use): Status abrufen, Automatisierungen anlegen
 - Zeitplaner, der Automatisierungen automatisch ausführt
 - Bezahlung über Stripe (optional, mit Schlüssel)
+- Anbieter-Bereich: Dritte stellen eigene Agenten in den Marktplatz ein
 
 ## 🔜 Nächste mögliche Schritte
 
 - echte x-sale-Anbindung (statt Demo-Zahlen im Werkzeug)
 - Dauerbetrieb des Zeitplaners (Cron-Job / Queue)
 - echte Datenbank (SQLite/Postgres) statt JSON-Datei
-- Anbieter-Bereich, in dem Dritte eigene Agenten einstellen
+- Bewertungen/Reviews für Anbieter-Agenten
 
 > Hinweis: Ohne laufenden Server bleibt die App ein lokaler Prototyp
 > (Browser-Speicher, Demo-Antworten). Mit Server werden die Funktionen oben echt.

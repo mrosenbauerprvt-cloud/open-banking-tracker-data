@@ -88,6 +88,69 @@ app.post("/api/rentals", (req, res) => {
   res.json({ rental });
 });
 
+/* ---------------- Anbieter: eigene Agenten einstellen ---------------- */
+// Standard-Werte je Level (damit Anbieter nur die Preise angeben müssen)
+const DEFAULT_STATS = {
+  1: { speed: 55, accuracy: 60, power: 45, tokens: 50 },
+  2: { speed: 78, accuracy: 80, power: 72, tokens: 75 },
+  3: { speed: 93, accuracy: 95, power: 94, tokens: 96 },
+};
+const DEFAULT_INCLUDES = { 1: "Basis-Nutzung", 2: "Erweiterte Nutzung", 3: "Unbegrenzt + Priorität" };
+
+function buildAgent(body, user) {
+  const prices = body.prices || {};
+  const levels = [1, 2, 3].map((lvl) => ({
+    level: lvl,
+    price: Math.max(0, Math.round(Number(prices[lvl]) || 0)),
+    includes: DEFAULT_INCLUDES[lvl],
+    stats: DEFAULT_STATS[lvl],
+  }));
+  return {
+    id: id("agent"),
+    name: String(body.name || "").trim() || "Neuer Agent",
+    tagline: String(body.tagline || "").trim(),
+    category: body.category || "office",
+    emoji: body.emoji || "🤖",
+    rating: 4.5,
+    trainable: !!body.trainable,
+    description: String(body.description || "").trim(),
+    skills: Array.isArray(body.skills)
+      ? body.skills
+      : String(body.skills || "").split(",").map((s) => s.trim()).filter(Boolean),
+    levels,
+    custom: true,
+    providerId: user.id,
+    providerName: user.name,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+app.get("/api/agents", (_req, res) => {
+  const db = read();
+  res.json({ agents: db.agents || [] });
+});
+
+app.post("/api/agents", (req, res) => {
+  if (!req.user) return res.status(401).json({ error: "Bitte einloggen, um einen Agenten einzustellen." });
+  const body = req.body || {};
+  if (!body.name || !body.tagline) {
+    return res.status(400).json({ error: "Name und Kurzbeschreibung sind erforderlich." });
+  }
+  const agent = buildAgent(body, req.user);
+  update("agents", (list) => list.concat(agent));
+  res.json({ agent });
+});
+
+app.delete("/api/agents/:id", (req, res) => {
+  if (!req.user) return res.status(401).json({ error: "Bitte einloggen." });
+  const db = read();
+  const agent = (db.agents || []).find((a) => a.id === req.params.id);
+  if (!agent) return res.status(404).json({ error: "Agent nicht gefunden." });
+  if (agent.providerId !== req.user.id) return res.status(403).json({ error: "Nur der Anbieter darf löschen." });
+  update("agents", (list) => list.filter((a) => a.id !== req.params.id));
+  res.json({ ok: true });
+});
+
 /* ---------------- Automatisierungen & Protokoll ---------------- */
 app.get("/api/automations", (req, res) => {
   const db = read();

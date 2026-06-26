@@ -26,6 +26,7 @@ const state = {
   tokenUsed: {},        // verbrauchte Tokens je Agent: { agentId: number }
   serverToken: null,    // Login-Token vom Server (echtes Konto)
   serverUser: null,     // { id, email, name } vom Server
+  customAgents: [],     // von Anbietern eingestellte Agenten (vom Server)
 };
 
 const STORAGE_KEY = "xsale_state_v3";
@@ -168,7 +169,19 @@ function saveAccount() {
   closeAccount();
   toast(`Willkommen, ${name}! 🎉`);
 }
-const getAgent = (id) => AGENTS.find((a) => a.id === id);
+// Alle Agenten = fest eingebaute + von Anbietern eingestellte
+const allAgents = () => AGENTS.concat(state.customAgents || []);
+const getAgent = (id) => allAgents().find((a) => a.id === id);
+
+// Lädt die von Anbietern eingestellten Agenten vom Server (falls erreichbar)
+async function loadCustomAgents() {
+  try {
+    const data = await api("/api/agents");
+    state.customAgents = data.agents || [];
+  } catch (e) {
+    state.customAgents = [];
+  }
+}
 const euro = (n) => n.toLocaleString("de-DE") + " €";
 const categoryLabel = (id) => (CATEGORIES.find((x) => x.id === id) || {}).label || id;
 const getLevel = (agent, lvl) => agent.levels.find((l) => l.level === lvl);
@@ -284,7 +297,7 @@ async function checkout() {
 
 // ---- Marktplatz (gamifiziert) ----
 function viewMarket() {
-  const filtered = AGENTS.filter((a) => {
+  const filtered = allAgents().filter((a) => {
     const matchCat = state.category === "all" || a.category === state.category;
     const text = (a.name + " " + a.tagline + " " + a.description).toLowerCase();
     return matchCat && text.includes(state.search.toLowerCase());
@@ -308,6 +321,7 @@ function viewMarket() {
         ${a.trainable ? `<span class="train-flag" title="Kann auf Wunsch trainiert werden">🎓 trainierbar</span>` : ""}
       </div>
       <p class="card-tagline">${a.tagline}</p>
+      ${a.custom ? `<div class="provider-note">🏷️ Anbieter: ${a.providerName || "extern"}</div>` : ""}
       <div class="card-levels">${lvls}</div>
       <div class="mini-stats">
         <span title="Geschwindigkeit">⚡ ${top.speed}</span>
@@ -732,6 +746,82 @@ async function viewActivity() {
   $("#refresh-activity").onclick = () => viewActivity();
 }
 
+// ---- Anbieter-Bereich: eigene Agenten einstellen ----
+function viewProvider() {
+  if (!state.serverToken) {
+    app.innerHTML = `<div class="section-head"><h1>Anbieter werden</h1></div>
+      <div class="empty-state">
+        Um eigene KI-Agenten anzubieten, brauchst Du ein <strong>echtes Konto</strong>
+        und einen laufenden Server.<br/>
+        Melde Dich oben rechts an (Registrieren/Anmelden) und versuche es erneut.
+      </div>`;
+    return;
+  }
+
+  const cats = CATEGORIES.filter((c) => c.id !== "all")
+    .map((c) => `<option value="${c.id}">${c.label}</option>`).join("");
+
+  // eigene Agenten dieses Anbieters
+  const mine = (state.customAgents || []).filter((a) => a.providerId === state.serverUser?.id);
+  const mineHtml = mine.length
+    ? mine.map((a) => `<div class="rental-row">
+        <div class="avatar glow">${a.emoji}</div>
+        <div class="info"><strong>${a.name}</strong><div>${a.tagline}</div></div>
+        <div style="font-weight:800">ab ${euro(cheapest(a))}</div>
+        <button class="btn btn-ghost btn-sm" data-del-agent="${a.id}">Löschen</button>
+      </div>`).join("")
+    : `<div class="empty-state">Du hast noch keinen Agenten eingestellt.</div>`;
+
+  app.innerHTML = `
+    <div class="section-head"><h1>Anbieter-Bereich</h1></div>
+    <div class="panel">
+      <h2>Neuen Agenten einstellen</h2>
+      <div class="form-grid">
+        <label>Name<input id="p-name" type="text" placeholder="z. B. Buchhalter-Bea" /></label>
+        <label>Emoji<input id="p-emoji" type="text" placeholder="🤖" maxlength="2" /></label>
+        <label>Kategorie<select id="p-category">${cats}</select></label>
+        <label>Kurzbeschreibung<input id="p-tagline" type="text" placeholder="Was macht der Agent?" /></label>
+        <label class="full">Beschreibung<textarea id="p-description" rows="3" placeholder="Ausführliche Beschreibung…"></textarea></label>
+        <label class="full">Fähigkeiten (mit Komma getrennt)<input id="p-skills" type="text" placeholder="Buchhaltung, Rechnungen, Mahnungen" /></label>
+        <label>Preis Level 1 (€)<input id="p-price1" type="number" min="0" value="49" /></label>
+        <label>Preis Level 2 (€)<input id="p-price2" type="number" min="0" value="149" /></label>
+        <label>Preis Level 3 (€)<input id="p-price3" type="number" min="0" value="399" /></label>
+        <label class="checkbox full"><input id="p-trainable" type="checkbox" /> Auf Wunsch trainierbar</label>
+      </div>
+      <button class="btn btn-primary btn-block" id="p-submit" style="margin-top:14px">Agent veröffentlichen</button>
+    </div>
+
+    <h2 style="margin-top:24px">Deine Agenten</h2>
+    ${mineHtml}
+  `;
+
+  $("#p-submit").onclick = async () => {
+    const body = {
+      name: $("#p-name").value, emoji: $("#p-emoji").value || "🤖",
+      category: $("#p-category").value, tagline: $("#p-tagline").value,
+      description: $("#p-description").value, skills: $("#p-skills").value,
+      trainable: $("#p-trainable").checked,
+      prices: { 1: $("#p-price1").value, 2: $("#p-price2").value, 3: $("#p-price3").value },
+    };
+    if (!body.name || !body.tagline) { toast("Bitte Name und Kurzbeschreibung ausfüllen."); return; }
+    try {
+      await api("/api/agents", { method: "POST", body: JSON.stringify(body) });
+      await loadCustomAgents();
+      toast("🎉 Agent veröffentlicht!");
+      viewProvider();
+    } catch (e) { toast("⚠️ " + e.message); }
+  };
+  app.querySelectorAll("[data-del-agent]").forEach((b) =>
+    b.onclick = async () => {
+      try {
+        await api("/api/agents/" + b.dataset.delAgent, { method: "DELETE" });
+        await loadCustomAgents();
+        toast("Agent gelöscht.");
+        viewProvider();
+      } catch (e) { toast("⚠️ " + e.message); }
+    });
+}
+
 // ---- "So funktioniert's" ----
 function viewHow() {
   app.innerHTML = `
@@ -760,6 +850,7 @@ function render() {
   else if (state.route === "chat") viewChat();
   else if (state.route === "dashboard") viewDashboard();
   else if (state.route === "activity") viewActivity();
+  else if (state.route === "provider") viewProvider();
   else if (state.route === "how") viewHow();
   if (state.route !== "chat") window.scrollTo({ top: 0 });
 }
@@ -784,5 +875,7 @@ function init() {
   $("#account-register").onclick = () => serverAuth("register");
   $("#account-login").onclick = () => serverAuth("login");
   render();
+  // Von Anbietern eingestellte Agenten nachladen und Ansicht aktualisieren
+  loadCustomAgents().then(() => render());
 }
 document.addEventListener("DOMContentLoaded", init);
